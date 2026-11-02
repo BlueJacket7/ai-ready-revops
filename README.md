@@ -64,7 +64,7 @@ The LLM export is narrower than the warehouse: deals, account attributes and sub
 
 `privacy/gate.py` is the only path from `data/raw` to anything downstream.
 
-- It fails closed. Unclassified tables or columns, unknown classes/handlings/rules/destinations, a column asking for more than its class allows, a row with the wrong field count, a missing key or a token collision all stop the run. Outputs are built in temp dirs next to their final location and swapped in only after the whole run succeeds; on failure the previous output is restored, so you never get a half-written or mixed result.
+- It fails closed. Unclassified tables or columns, unknown classes/handlings/rules/destinations, a column asking for more than its class allows, a row with the wrong field count, a missing key or a token collision all stop the run. Outputs are built in temp dirs next to their final location and swapped in only after the whole run succeeds; on an error the previous output is restored, so a failed run does not leave a half-written result.
 - Pseudonymization is HMAC-SHA256 under `PRIVACY_KEY`, namespaced per key type. Same contact, same token in every table, so joins work, but without the key the tokens can't be reversed even though the source IDs are sequential.
 - It writes `_manifest.json` with what was dropped/hashed/generalized, the inventory hash, key mode and a sha256 per output file.
 
@@ -143,3 +143,5 @@ dbt/         staging and mart models, data tests, macros
 tests/       privacy test suite
 data/        generated at run time, never committed
 ```
+
+© 2026 Joseph Alise. All rights reserved.

@@ -14,7 +14,7 @@ Fails closed. The gate stops, and changes nothing on disk, if:
   - two different values hash to the same token
   - anything else goes wrong mid-run
 
-Outputs are swapped in atomically; a failed run leaves the previous output intact.
+Outputs are swapped in only after the run succeeds; on an error the previous output is restored.
 
 Usage:
   PRIVACY_KEY=... python privacy/gate.py
