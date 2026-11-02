@@ -1,0 +1,24 @@
+name: ai_ready_revops
+version: "1.0.0"
+config-version: 2
+profile: ai_ready_revops
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  as_of_month: "2026-10-01"     # last full month in the generated window
+  window_start: "2023-11-01"
+  retention_start: "2024-11-01" # first month whose 12-month base lies inside the window
+  velocity_start: "2024-04-01"  # first quarter whose opening pipeline had a full quarter to build
+  gross_margin: 0.78             # used for CAC payback
+
+models:
+  ai_ready_revops:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

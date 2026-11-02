@@ -1,0 +1,120 @@
+# Data inventory and handling policy.
+#
+# Every column of every raw table must be listed here. The gate fails closed:
+# an unlisted table or column stops the pipeline, so schema drift cannot carry
+# new personal data downstream unreviewed.
+#
+# classification
+#   direct_identifier      identifies a person on its own (name, email, phone)
+#   free_text              unstructured text that can carry personal data
+#   pseudonymous_key       a person-level key; replaced with a keyed hash
+#   quasi_identifier       could single a person out in combination; generalized
+#   confidential_business  customer or company confidential, not personal
+#   business_key           internal record key for a company or a deal
+#   business_attribute     ordinary business fact
+#
+# handling
+#   drop          removed before anything leaves the gate
+#   pseudonymize  HMAC-SHA256 keyed with PRIVACY_KEY; stable per namespace
+#   generalize    mapped to a coarser value by a named rule
+#   keep          passed through unchanged
+#
+# destinations: where the column may go after the gate
+#   warehouse     the dbt metrics layer (data/clean)
+#   llm           any language-model tool (data/llm)
+
+policy_version: 2
+owner: Joseph Alise
+reviewed: 2026-11-01
+
+# allowed_destinations is the ceiling for every column in the class. The gate
+# refuses any column that asks for more, so sending account names to an LLM
+# would take a reclassification, not a one-word edit.
+classes:
+  direct_identifier:     {handling: drop,         allowed_destinations: []}
+  free_text:             {handling: drop,         allowed_destinations: []}
+  pseudonymous_key:      {handling: pseudonymize, allowed_destinations: [warehouse, llm]}
+  quasi_identifier:      {handling: generalize,   allowed_destinations: [warehouse, llm]}
+  confidential_business: {handling: keep,         allowed_destinations: [warehouse]}
+  business_key:          {handling: keep,         allowed_destinations: [warehouse, llm]}
+  business_attribute:    {handling: keep,         allowed_destinations: [warehouse, llm]}
+
+# Minimization for the llm destination: it receives deal, account-attribute and
+# subscription data only. Contact-level rows never go there, and sales reps
+# appear only as keyed-hash tokens. Hashed tokens are still personal data under
+# GDPR, so the llm export is minimized, not anonymous.
+
+tables:
+  reps:
+    rep_id:        {class: pseudonymous_key,   destinations: [warehouse], namespace: rep}
+    first_name:    {class: direct_identifier,  destinations: []}
+    last_name:     {class: direct_identifier,  destinations: []}
+    email:         {class: direct_identifier,  destinations: []}
+    segment:       {class: business_attribute, destinations: [warehouse]}
+    region:        {class: business_attribute, destinations: [warehouse]}
+    hire_date:     {class: quasi_identifier,   destinations: [warehouse], rule: year_month}
+    annual_quota:  {class: business_attribute, destinations: [warehouse]}
+
+  accounts:
+    account_id:     {class: business_key,          destinations: [warehouse, llm]}
+    account_name:   {class: confidential_business, destinations: [warehouse]}
+    domain:         {class: confidential_business, destinations: [warehouse]}
+    industry:       {class: business_attribute,    destinations: [warehouse, llm]}
+    segment:        {class: business_attribute,    destinations: [warehouse, llm]}
+    employee_count: {class: business_attribute,    destinations: [warehouse, llm]}
+    billing_country: {class: business_attribute,   destinations: [warehouse, llm]}
+    billing_state:  {class: business_attribute,    destinations: [warehouse, llm]}
+    created_at:     {class: business_attribute,    destinations: [warehouse, llm]}
+    owner_rep_id:   {class: pseudonymous_key,      destinations: [warehouse, llm], namespace: rep}
+
+  contacts:
+    contact_id:  {class: pseudonymous_key,  destinations: [warehouse], namespace: contact}
+    account_id:  {class: business_key,      destinations: [warehouse]}
+    first_name:  {class: direct_identifier, destinations: []}
+    last_name:   {class: direct_identifier, destinations: []}
+    email:       {class: direct_identifier, destinations: []}
+    phone:       {class: direct_identifier, destinations: []}
+    title:       {class: quasi_identifier,  destinations: [warehouse], rule: seniority}
+    created_at:  {class: business_attribute, destinations: [warehouse]}
+
+  marketing_touches:
+    touch_id:   {class: business_key,       destinations: [warehouse, llm]}
+    contact_id: {class: pseudonymous_key,   destinations: [warehouse], namespace: contact}
+    account_id: {class: business_key,       destinations: [warehouse, llm]}
+    channel:    {class: business_attribute, destinations: [warehouse, llm]}
+    campaign:   {class: business_attribute, destinations: [warehouse, llm]}
+    touched_at: {class: business_attribute, destinations: [warehouse, llm]}
+
+  opportunities:
+    opportunity_id:     {class: business_key,       destinations: [warehouse, llm]}
+    account_id:         {class: business_key,       destinations: [warehouse, llm]}
+    owner_rep_id:       {class: pseudonymous_key,   destinations: [warehouse, llm], namespace: rep}
+    primary_contact_id: {class: pseudonymous_key,   destinations: [warehouse], namespace: contact}
+    opportunity_type:   {class: business_attribute, destinations: [warehouse, llm]}
+    lead_source:        {class: business_attribute, destinations: [warehouse, llm]}
+    created_at:         {class: business_attribute, destinations: [warehouse, llm]}
+    close_date:         {class: business_attribute, destinations: [warehouse, llm]}
+    stage:              {class: business_attribute, destinations: [warehouse, llm]}
+    is_closed:          {class: business_attribute, destinations: [warehouse, llm]}
+    is_won:             {class: business_attribute, destinations: [warehouse, llm]}
+    amount_arr:         {class: business_attribute, destinations: [warehouse, llm]}
+    next_step_notes:    {class: free_text,          destinations: []}
+
+  opportunity_stage_history:
+    opportunity_id: {class: business_key,       destinations: [warehouse, llm]}
+    stage:          {class: business_attribute, destinations: [warehouse, llm]}
+    entered_at:     {class: business_attribute, destinations: [warehouse, llm]}
+
+  subscription_events:
+    event_id:        {class: business_key,       destinations: [warehouse, llm]}
+    subscription_id: {class: business_key,       destinations: [warehouse, llm]}
+    account_id:      {class: business_key,       destinations: [warehouse, llm]}
+    event_month:     {class: business_attribute, destinations: [warehouse, llm]}
+    event_type:      {class: business_attribute, destinations: [warehouse, llm]}
+    arr_delta:       {class: business_attribute, destinations: [warehouse, llm]}
+    opportunity_id:  {class: business_key,       destinations: [warehouse, llm]}
+
+  sm_spend:
+    month:           {class: business_attribute, destinations: [warehouse, llm]}
+    sales_spend:     {class: business_attribute, destinations: [warehouse, llm]}
+    marketing_spend: {class: business_attribute, destinations: [warehouse, llm]}

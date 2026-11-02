@@ -1,0 +1,30 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt
+      - name: Generate data
+        run: make generate
+      - name: Privacy gate
+        env:
+          PRIVACY_KEY_SECRET: ${{ secrets.PRIVACY_KEY }}
+        run: |
+          # fall back to a throwaway key if the repo secret isn't set
+          export PRIVACY_KEY="${PRIVACY_KEY_SECRET:-$(openssl rand -hex 32)}"
+          make gate
+      - name: dbt build
+        run: make dbt
+      - name: Leak scan
+        run: make scan
+      - name: pytest
+        run: make test

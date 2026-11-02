@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: account_arr_monthly
+    description: ARR per account per month from subscription events.
+  - name: arr_rollforward
+    description: Monthly ARR bridge (starting, new, expansion, contraction, churn, ending).
+    columns:
+      - name: month
+        data_tests: [unique, not_null]
+  - name: retention_monthly
+    description: Trailing-twelve-month NRR and GRR, by segment and overall.
+  - name: pipeline_velocity_quarterly
+    description: New-business win rate, deal size, cycle and velocity by close quarter and segment.
+  - name: stage_funnel
+    description: Stage-to-stage conversion for closed new-business deals; skipped stages count as passed.
+  - name: rep_performance_yearly
+    description: Win rate and quota attainment by rep and year.
+  - name: cohort_logo_retention
+    description: Logo retention curves by start-quarter cohort.
+  - name: cac_payback_quarterly
+    description: Blended CAC and CAC payback months by quarter.

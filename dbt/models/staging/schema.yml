@@ -1,0 +1,51 @@
+version: 2
+
+models:
+  - name: stg_accounts
+    description: CRM accounts with duplicate records mapped to a canonical account by domain.
+    columns:
+      - name: account_id
+        data_tests: [unique, not_null]
+      - name: canonical_account_id
+        data_tests: [not_null]
+      - name: segment
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['SMB', 'MidMarket', 'Enterprise']
+
+  - name: stg_opportunities
+    description: Opportunities with imputed close dates, flagged missing amounts and canonical accounts.
+    columns:
+      - name: opportunity_id
+        data_tests: [unique, not_null]
+      - name: account_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_accounts')
+                field: account_id
+      - name: opportunity_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['New Business', 'Expansion', 'Renewal']
+
+  - name: stg_subscription_events
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: account_id
+        data_tests: [not_null]
+      - name: event_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['new', 'expansion', 'contraction', 'churn']
+
+  - name: stg_stage_history
+    columns:
+      - name: stage_order
+        data_tests: [not_null]

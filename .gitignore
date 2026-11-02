@@ -1,0 +1,10 @@
+# Generated data never enters version control. Raw data holds (synthetic)
+# personal data by design; the rest is rebuilt from it on every run.
+data/*
+!data/.gitkeep
+dbt/target/
+dbt/logs/
+dbt/.user.yml
+__pycache__/
+.pytest_cache/
+*.duckdb.wal

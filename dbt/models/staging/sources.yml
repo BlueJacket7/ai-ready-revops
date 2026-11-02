@@ -1,0 +1,16 @@
+version: 2
+
+sources:
+  - name: clean
+    description: Output of the privacy gate; the only data dbt is allowed to read.
+    meta:
+      external_location: "read_csv('../data/clean/{name}.csv', header = true, all_varchar = true)"
+    tables:
+      - name: reps
+      - name: accounts
+      - name: contacts
+      - name: marketing_touches
+      - name: opportunities
+      - name: opportunity_stage_history
+      - name: subscription_events
+      - name: sm_spend
